@@ -1,0 +1,68 @@
+
+# Game Specification
+
+## Core Structure
+- This describes a Markov game with alternating moves where:
+  - Each player has exactly 2 possible moves
+  - There are 2 possible position states
+  - Everything depends only on the current position state and chosen move (Markov property)
+  - The game is zero-sum (for now)
+
+## Game Data Structure
+The core data is represented as a table with:
+- 8 rows (representing each possible situation)
+- 4 numbers per row (32 polynomial expressions total)
+- For each situation (defined by player moving, position state, and move made), four numbers specify:
+  - Probability distribution over two possible next position states for the other player (2 numbers)
+  - Probability of game ending with Player 1 winning or Player 2 winning (2 numbers)
+
+## Parameters and Naming
+The specification includes:
+- Names for the two position states
+- Names for the two move types
+- Parameters used in the polynomials (e.g., tau, bsS)
+- Transition probabilities given as polynomials of these parameters
+- When Player 1 wins, they get value one (zero-sum)
+
+## Termination Properties
+- Every move has some probability of ending the game
+- With tau > 0, infinite continuation is impossible
+- Terminal states are: Player 1 wins or Player 2 wins
+
+## Required Program Functionality
+
+### Input Validation
+- Machine must verify each row of the table:
+  - Symbolically reduce and add the four numbers
+  - Check if they sum to one
+  - This check must be done for every situation
+
+### Output Requirements
+1. Given a pure strategy profile (mapping from position states to moves for each player), calculate:
+   - Expected value for Player 1
+   - Expected value for Player 2
+2. For cases with positive probability of termination:
+   - Generate algebraic expressions giving steady state value for every possible starting state
+3. Process game data + strategy profile + initial state (position and player to move)
+
+### Technical Implementation Notes
+- Must handle symbolic expressions/polynomials
+- Uses Markov chain theory to:
+  - Figure out absorbing cycles
+  - Symbolically calculate expected values
+- For non-terminal values:
+  - Expected values given by linear combinations of knowns plus unknowns
+  - Needs symbolic values for all non-terminal states
+
+## Implementation Considerations
+- Will need code to generate the 32 symbolic expressions
+- Requires symbolic manipulators for algebraic operations
+- Based on finite state Markov chain theory
+- Should follow Meyer's approach
+- Game specifies transition probabilities for every position state and move combination
+
+## Testing
+Dummy test: After receiving symbolic expressions for transition probabilities, computer should:
+1. Add the four numbers for each situation
+2. Subtract one
+3. Verify result equals zero through symbolic manipulation
