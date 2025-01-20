@@ -1,0 +1,248 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      8598,        240]
+NotebookOptionsPosition[      7811,        218]
+NotebookOutlinePosition[      8206,        234]
+CellTagsIndexPosition[      8163,        231]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{"\n", "\[IndentingNewLine]", 
+  RowBox[{"(*", 
+   RowBox[{"Define", " ", "f", 
+    RowBox[{"(", "x", ")"}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"f", "[", "x_", "]"}], ":=", 
+     RowBox[{"1", "/", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "x"}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Define", " ", "the", " ", "second", " ", "expression"}], "*)"}], 
+   "\n", 
+   RowBox[{
+    RowBox[{"V1a", "=", 
+     RowBox[{"f", "[", 
+      RowBox[{
+       RowBox[{"b_sC", "/", 
+        RowBox[{"(", 
+         RowBox[{"1", "-", "b_sC"}], ")"}]}], "*", 
+       RowBox[{"1", "/", 
+        RowBox[{"(", 
+         RowBox[{"tau", "+", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"1", "-", "tau"}], ")"}], "*", 
+           RowBox[{"(", 
+            RowBox[{"b_cS", "+", 
+             RowBox[{
+              RowBox[{"(", 
+               RowBox[{"1", "-", "b_cS"}], ")"}], "*", "tau"}]}], ")"}]}]}], 
+         ")"}]}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Define", " ", "deviation", " ", "expressions"}], "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"deviationMACHINE", "=", 
+     RowBox[{
+      RowBox[{"-", 
+       RowBox[{"(", 
+        RowBox[{"b_sS", "-", "1"}], ")"}]}], "*", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"tau", "*", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"-", "b_cS"}], "*", "b_sC", "*", 
+             RowBox[{"tau", "^", "2"}]}], "+", 
+            RowBox[{"2", "*", "b_cS", "*", "b_sC", "*", "tau"}], "-", 
+            RowBox[{"b_cS", "*", "b_sC"}], "+", 
+            RowBox[{"b_cS", "*", 
+             RowBox[{"tau", "^", "2"}]}], "-", 
+            RowBox[{"2", "*", "b_cS", "*", "tau"}], "+", "b_cS", "+", 
+            RowBox[{"b_sC", "*", 
+             RowBox[{"tau", "^", "2"}]}], "-", 
+            RowBox[{"2", "*", "b_sC", "*", "tau"}], "+", "b_sC", "-", 
+            RowBox[{"tau", "^", "2"}], "+", 
+            RowBox[{"2", "*", "tau"}]}], ")"}]}], "+", 
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{"tau", "-", "1"}], ")"}], "*", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"b_cS", "*", "b_sC", "*", 
+             RowBox[{"tau", "^", "2"}]}], "-", 
+            RowBox[{"2", "*", "b_cS", "*", "b_sC", "*", "tau"}], "+", 
+            RowBox[{"b_cS", "*", "b_sC"}], "-", 
+            RowBox[{"b_cS", "*", 
+             RowBox[{"tau", "^", "2"}]}], "+", 
+            RowBox[{"2", "*", "b_cS", "*", "tau"}], "-", "b_cS", "+", 
+            RowBox[{"b_sC", "*", "b_sS", "*", "tau"}], "-", 
+            RowBox[{"b_sC", "*", "b_sS"}], "-", 
+            RowBox[{"b_sC", "*", 
+             RowBox[{"tau", "^", "2"}]}], "+", 
+            RowBox[{"b_sC", "*", "tau"}], "+", 
+            RowBox[{"tau", "^", "2"}], "-", 
+            RowBox[{"2", "*", "tau"}]}], ")"}]}]}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", "b_cS"}], "*", "b_sC", "*", 
+          RowBox[{"tau", "^", "2"}]}], "+", 
+         RowBox[{"2", "*", "b_cS", "*", "b_sC", "*", "tau"}], "-", 
+         RowBox[{"b_cS", "*", "b_sC"}], "+", 
+         RowBox[{"b_cS", "*", 
+          RowBox[{"tau", "^", "2"}]}], "-", 
+         RowBox[{"2", "*", "b_cS", "*", "tau"}], "+", "b_cS", "+", 
+         RowBox[{"b_sC", "*", 
+          RowBox[{"tau", "^", "2"}]}], "-", 
+         RowBox[{"2", "*", "b_sC", "*", "tau"}], "+", "b_sC", "-", 
+         RowBox[{"tau", "^", "2"}], "+", 
+         RowBox[{"2", "*", "tau"}]}], ")"}]}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", "\n", 
+   RowBox[{"(*", 
+    RowBox[{
+    "Define", " ", "the", " ", "second", " ", "deviation", " ", 
+     "expression"}], "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"deviationTEX", "=", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "-", "b_sS"}], ")"}], "*", 
+      RowBox[{"(", 
+       RowBox[{"tau", "+", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"1", "-", "tau"}], ")"}], "*", 
+         RowBox[{"(", 
+          RowBox[{"b_sS", "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{"1", "-", "b_sS"}], ")"}], "*", 
+            RowBox[{"(", 
+             RowBox[{"tau", "+", 
+              RowBox[{
+               RowBox[{"(", 
+                RowBox[{"1", "-", "tau"}], ")"}], "*", "V1a"}]}], ")"}]}]}], 
+          ")"}]}]}], ")"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", 
+    RowBox[{"Second", " ", "comparison"}], "*)"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<Difference between deviation expressions:\>\"", "]"}], 
+    ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"Simplify", "[", 
+      RowBox[{"deviationMACHINE", "-", "deviationTEX"}], "]"}], "]"}], ";"}], 
+   "\n", "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{
+    "Check", " ", "if", " ", "both", " ", "pairs", " ", "of", " ", 
+     "expressions", " ", "are", " ", "equivalent"}], "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<\\nIs the pair equivalent?\>\"", "]"}], ";"}], 
+   "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Pair: \>\"", ",", 
+      RowBox[{"Simplify", "[", 
+       RowBox[{"deviationMACHINE", "==", "deviationTEX"}], "]"}]}], "]"}], 
+    ";"}]}]}]], "Input",
+ CellChangeTimes->{{3.9458417294612913`*^9, 3.94584172946568*^9}, 
+   3.9458419114687433`*^9, {3.9458423350972023`*^9, 3.945842337518053*^9}, {
+   3.945842404163975*^9, 3.945842424840612*^9}, 3.94585304766989*^9, {
+   3.946022526772274*^9, 3.94602252833272*^9}, {3.946028901794343*^9, 
+   3.9460289239117193`*^9}, {3.946035126584702*^9, 3.946035204245778*^9}, {
+   3.946035235046536*^9, 3.946035369662293*^9}, 3.946035411937026*^9, {
+   3.9460356562711477`*^9, 3.9460356584049273`*^9}, 3.946035756601049*^9},
+ CellLabel->
+  "In[419]:=",ExpressionUUID->"b9300f6e-6f9a-4852-90c4-6177a68cb6ab"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData["\<\"Difference between deviation expressions:\"\>"], "Print",
+ CellChangeTimes->{3.946035338692198*^9, 3.9460354139702187`*^9, 
+  3.946035763184579*^9},
+ CellLabel->
+  "During evaluation of \
+In[419]:=",ExpressionUUID->"8dc0a1ff-cc10-4998-89e6-690a0b021d50"],
+
+Cell[BoxData["0"], "Print",
+ CellChangeTimes->{3.946035338692198*^9, 3.9460354139702187`*^9, 
+  3.946035763185402*^9},
+ CellLabel->
+  "During evaluation of \
+In[419]:=",ExpressionUUID->"0c616546-b09a-4504-844c-705b98940132"],
+
+Cell[BoxData["\<\"\\nIs the pair equivalent?\"\>"], "Print",
+ CellChangeTimes->{3.946035338692198*^9, 3.9460354139702187`*^9, 
+  3.946035763185892*^9},
+ CellLabel->
+  "During evaluation of \
+In[419]:=",ExpressionUUID->"eceb459c-e335-46ae-9521-bbdf376df781"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Pair: \"\>", "\[InvisibleSpace]", "True"}],
+  SequenceForm["Pair: ", True],
+  Editable->False]], "Print",
+ CellChangeTimes->{3.946035338692198*^9, 3.9460354139702187`*^9, 
+  3.946035763186445*^9},
+ CellLabel->
+  "During evaluation of \
+In[419]:=",ExpressionUUID->"4447ba1a-59c0-4122-bf80-44c0ec2194a4"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{Full, Full},
+WindowMargins->{{68, Automatic}, {Automatic, 24}},
+FrontEndVersion->"13.3 for Mac OS X ARM (64-bit) (July 24, 2023)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"4da4d84c-eaf0-421b-8cc2-1f0f13df7455"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 6065, 158, 577, "Input",ExpressionUUID->"b9300f6e-6f9a-4852-90c4-6177a68cb6ab"],
+Cell[CellGroupData[{
+Cell[6670, 184, 272, 5, 24, "Print",ExpressionUUID->"8dc0a1ff-cc10-4998-89e6-690a0b021d50"],
+Cell[6945, 191, 224, 5, 24, "Print",ExpressionUUID->"0c616546-b09a-4504-844c-705b98940132"],
+Cell[7172, 198, 257, 5, 44, "Print",ExpressionUUID->"eceb459c-e335-46ae-9521-bbdf376df781"],
+Cell[7432, 205, 351, 9, 24, "Print",ExpressionUUID->"4447ba1a-59c0-4122-bf80-44c0ec2194a4"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
