@@ -4,3 +4,7 @@
 
 Feed the two files above to a Claude project as context if you want to continue working on the machine. Feed **'Project instructions'** to the project instructions, too. You are then good to go.
 
+**Equivalence checks**: Mathematica scripts checking equivalence between expressions derived by hand, and expressions derived by the machine
+
+
+
