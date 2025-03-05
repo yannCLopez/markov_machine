@@ -18,26 +18,64 @@ This project implements a framework for analyzing Markov games with alternating 
   - Check equilibrium constraints
 - Numerical validation of equilibrium conditions
 
+## Repository Structure
+
+- **Core Analysis Engine**:
+  - `general_markov_machine.py`: Main engine that creates transition matrices, computes payoffs, and analyzes deviation incentives
+  - `numerical_checker.py`: Provides methods to find parameter values satisfying equilibrium constraints
+
+- **Validation Tools**:
+  - `point_checker_analytic.py`: Checks whether specific parameter configurations form equilibria using symbolic analysis
+  - `point_checker_numeric.py`: Numerically validates equilibrium constraints
+
+- **Equivalence Checks**:
+  - `Equivalence checks/`: Mathematica scripts that verify equivalence between expressions derived by hand and expressions derived by the machine. Specific to a particular game -- need to be adapted to your context of interest.
+  
+- **Game-Specific Implementation**:
+  - `Pandolfini_specifics/`: Specific implementation details and documentation for a particular game
+- **Legacy Code**:
+  - `archived/`: Previous versions of the framework
+
 ## Core Components
 
-### `general_markov_machine.py`
+### `GeneralMarkovGameAnalyzer` Class
 
-The main analysis engine that provides:
+The main engine that provides:
 
-- `GeneralMarkovGameAnalyzer`: Creates transition matrices, computes equilibrium payoffs, and analyzes deviation incentives
-- `EquilibriumConstraintChecker`: Verifies if strategy profiles satisfy equilibrium constraints
+- Creation of transition matrices from game specification
+- Computation of equilibrium payoffs using matrix inversion
+- Analysis of deviation incentives
+- Recursive formulation of continuation values
 
-### `numerical_checker.py`
+### `EquilibriumConstraintChecker` Class
 
-Provides numerical methods to find parameter values that satisfy equilibrium constraints:
+Verifies if strategy profiles satisfy equilibrium constraints by:
 
-- `OptimizedNumericalChecker`: Implements grid search with vectorized operations for finding feasible parameter values
-- `SearchConfig`: Configuration for numerical search parameters
+- Converting deviation gains into formal constraints
+- Checking if there exist parameter values satisfying all constraints
+- Generating comprehensive equilibrium analysis
 
-## Auxiliary Files
+### `OptimizedNumericalChecker` Class
 
-- `point_checker_analytic.py`: Checks whether a specific parameter configuration forms an equilibrium using symbolic analysis
-- `point_checker_numeric.py`: Numerically validates equilibrium constraints for a specific parameter configuration
+Finds parameter values satisfying equilibrium constraints through:
+
+- Grid search with vectorized operations
+- Automatic bound inference
+- Numerically stable constraint evaluation
+
+## Mathematical Framework
+
+The analysis framework builds on finite state Markov chain theory:
+
+1. Representing games as transition matrices
+2. Calculating expected payoffs using matrix inversion: V = (I-Q)^(-1)R
+3. Deriving recursive formulations for continuation values: v = Qv + Rc
+4. Checking one-shot deviation incentives
+
+Each game state is characterized by:
+- Current position
+- Player to move
+- Transition probabilities to other states or terminal outcomes
 
 ## Usage
 
@@ -110,27 +148,6 @@ else:
     print("Strategy profile cannot be an equilibrium")
 ```
 
-## Mathematical Framework
-
-The framework builds on finite state Markov chain theory to:
-1. Represent games as transition matrices
-2. Calculate expected payoffs using matrix inversion
-3. Derive recursive formulations for continuation values
-4. Check one-shot deviation incentives for equilibrium verification
-
-Each game state is characterized by:
-- Current position (e.g., "simple" or "complex")
-- Player to move (Player 1 or Player 2)
-- Transition probabilities to other states or terminal outcomes
-
-## Example Game Structure
-
-The framework is particularly suited for analyzing games where:
-- Players alternate moves
-- Each player has a set of possible actions in each position
-- Actions probabilistically determine the next position
-- There is always some probability of game termination
-
 ## Output
 
 The framework produces:
@@ -138,6 +155,7 @@ The framework produces:
 - Deviation incentive analysis
 - Parameter constraints for equilibrium
 - LaTeX documents with complete mathematical analysis
+- CSV files with valid parameter combinations
 
 ## Requirements
 
@@ -145,14 +163,3 @@ The framework produces:
 - SymPy
 - NumPy
 - SciPy
-
-## Getting Started
-
-1. Define your game using the structure in the examples
-2. Run analysis on specific strategy profiles
-3. Use the constraint checker to find parameter ranges that support equilibrium
-
-**Equivalence checks**: Mathematica scripts checking equivalence between expressions derived by hand, and expressions derived by the machine
-
-
-
