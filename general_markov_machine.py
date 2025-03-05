@@ -49,6 +49,7 @@ class GeneralMarkovGameAnalyzer:
         transition_probs_2,
         terminal_states,
         constant,
+        position_names,
     ):
         """
         Initialize the analyzer for a general 2-player zero-sum game.
@@ -70,6 +71,7 @@ class GeneralMarkovGameAnalyzer:
         self.transition_probs_2 = transition_probs_2
         self.terminal_states = terminal_states
         self.constant = constant
+        self.position_names = position_names
 
         # Calculate total number of non-terminal states
         # For each position, we need states for both players
@@ -172,6 +174,42 @@ class GeneralMarkovGameAnalyzer:
         Q = P[: self.num_non_terminal, : self.num_non_terminal]
         R = P[: self.num_non_terminal, self.num_non_terminal :]
         return Q, R
+    
+    def compute_equilibrium_payoffs_recursive(self, strategy_profile, constant):
+        """
+        Compute equilibrium continuation values using the recursive formulation:
+        v = Qv + R[1,0]^T
+        
+        This gives values in terms of symbolic V_player^{pos,profile} variables
+        rather than computing the explicit solution via matrix inversion.
+        """
+        # Get transition matrices
+        P = self.create_transition_matrix(strategy_profile)
+        Q, R = self.get_Q_R(P)
+        
+        # Create symbolic variables for each non-terminal state value
+        value_symbols = []
+        for player in [1, 2]:
+            for pos in range(self.num_positions):
+                pos_name = self.position_names[pos]
+                symbol = sp.Symbol(f'V_{player}^{{{pos_name};{strategy_profile}}}')
+                value_symbols.append(symbol)
+        
+        # Create the vector v of symbolic variables
+        v = sp.Matrix(value_symbols)
+        
+        # Create terminal values vector
+        
+        # Right-hand side of equation: Qv + R[1,0]
+        rhs = Q * v + R * sp.Matrix(self.terminal_values)
+        
+        # The equations v = Qv + R[1,0] give us our recursive formulation
+        # Each component gives one equation
+        equations = []
+        for i in range(len(v)):
+            equations.append(sp.Eq(v[i], rhs[i]))
+            
+        return equations, v
 
     def compute_equilibrium_payoffs(self, strategy_profile, constant):
         """
@@ -191,10 +229,139 @@ class GeneralMarkovGameAnalyzer:
         I = sp.eye(self.num_non_terminal)
         v_1 = (I - Q).inv() * R * sp.Matrix(self.terminal_values)
         v_1 = v_1.applyfunc(sp.simplify)
+
+        
         v_2 = [constant - v_1[i, 0] for i in range(v_1.shape[0])]
         v_2 = v_2 = sp.Matrix(v_2)  # CHECK that this gives v_2 in the same form as v_1
 
         return v_1, v_2
+    
+    def compute_payoffs_both_methods(self, strategy_profile, constant):
+        """
+        Compute payoffs using both matrix inversion and recursive formulation.
+        Returns both results for comparison and verification.
+        """
+        # Get matrix-based solution
+        v_matrix, v2_matrix = self.compute_equilibrium_payoffs(strategy_profile, constant)
+        
+        # Get recursive formulation
+        equations, v_symbols = self.compute_equilibrium_payoffs_recursive(strategy_profile, constant)
+        
+        # For verification: substitute the matrix solution into the recursive equations
+        substitutions = {}
+        for i, symbol in enumerate(v_symbols):
+            substitutions[symbol] = v_matrix[i]
+        
+        # Check if equations are satisfied by matrix solution
+        verification = []
+        for eq in equations:
+            lhs = eq.lhs.subs(substitutions)
+            rhs = eq.rhs.subs(substitutions)
+            verification.append(sp.simplify(lhs - rhs) == 0)
+            
+        return {
+            'matrix_solution': (v_matrix),
+            'recursive_equations': equations,
+            'symbolic_variables': v_symbols,
+            'verification': verification,
+        }
+
+
+    def compute_deviation_payoff_symbolic( #checked
+        self, strategy_profile, player, pos, deviation_move
+    ):
+        """
+        Compute expected payoff from one-shot deviation.
+        Args:
+            strategy_profile (str): Current strategy profile
+            player (int): Player making deviation (1 or 2)
+            pos (int): Position state where deviation occurs
+            deviation_move (str): The deviating move
+        Returns:
+            sympy expression: Expected payoff for the deviating player
+        """
+        if player == 2:
+            # First, player 2's deviation move
+            trans_probs_2 = self.transition_probs_2
+            position_trans_probs_2 = trans_probs_2[(pos, deviation_move)]
+            
+            # Initialize total payoff
+            total_payoff = 0
+            
+            # Handle immediate outcomes from player 2's move
+            if 'win' in position_trans_probs_2:
+                total_payoff += position_trans_probs_2['win'] * 1  # Player 2 blunders (player 1 wins)
+            if 'lose' in position_trans_probs_2:
+                total_payoff += position_trans_probs_2['lose'] * 0  # Game ends, player 1 loses
+                
+            # For non-terminal transitions, compute player 1's response
+            for next_pos, prob1 in position_trans_probs_2.items():
+                if isinstance(next_pos, int):
+                    # Get player 1's strategy in this position
+                    p1_strategy = self.parse_strategy_profile(strategy_profile)[0]
+                    p1_move = p1_strategy[next_pos]
+                    
+                    # Get player 1's transition probabilities
+                    trans_probs_1 = self.transition_probs
+                    position_trans_probs_1 = trans_probs_1[(next_pos, p1_move)]
+                    
+                    # Handle player 1's outcomes
+                    if 'lose' in position_trans_probs_1:
+                        total_payoff += prob1 * position_trans_probs_1['lose'] * 0  # Player 1 blunders
+                    if 'win' in position_trans_probs_1:
+                        total_payoff += prob1 * position_trans_probs_1['win'] * 1  # Game ends, player 1 wins
+                        
+                    # For non-terminal transitions after player 1's move
+                    for final_pos, prob2 in position_trans_probs_1.items():
+                        if isinstance(final_pos, int):
+                            # Use V_2^{pos,strategy_profile} as we're returning to player 2's turn
+                            v_symbol = sp.Symbol(f'V_2^{{{self.position_names[final_pos]},{strategy_profile}}}')
+                            total_payoff += prob1 * prob2 * v_symbol
+
+        else:  # player 1
+            # Compute full cycle
+            # First, player 1's deviation move
+            trans_probs_1 = self.transition_probs
+            position_trans_probs_1 = trans_probs_1[(pos, deviation_move)]
+            
+            # Initialize total payoff
+            total_payoff = 0
+            
+            # Handle immediate outcomes from player 1's move
+            # Hardcoded. Change accordingly
+            # The payoffs should not be hardcoded, nor should the names of terminal states be hardcoded.
+            if 'lose' in position_trans_probs_1:
+                total_payoff += position_trans_probs_1['lose'] * 0  # Player 1 blunders
+            if 'win' in position_trans_probs_1:
+                total_payoff += position_trans_probs_1['win'] * 1   # Game ends, player 1 wins
+                
+            # For non-terminal transitions, compute player 2's response
+            for next_pos, prob1 in position_trans_probs_1.items():
+                if isinstance(next_pos, int):
+                    # Get player 2's strategy in this position
+                    p2_strategy = self.parse_strategy_profile(strategy_profile)[1] 
+                    p2_move = p2_strategy[next_pos]
+                    
+                    # Get player 2's transition probabilities
+                    trans_probs_2 = self.transition_probs_2
+                    position_trans_probs_2 = trans_probs_2[(next_pos, p2_move)]
+                    
+                    # Handle player 2's outcomes
+                    if 'win' in position_trans_probs_2:
+                        total_payoff += prob1 * position_trans_probs_2['win'] * 1  # Player 2 blunders 
+                    if 'lose' in position_trans_probs_2:
+                        total_payoff += prob1 * position_trans_probs_2['lose'] * 0  # Game ends, player 1 loses
+                        
+                    # For non-terminal transitions after player 2's move
+                    for final_pos, prob2 in position_trans_probs_2.items():
+                        if isinstance(final_pos, int):
+                            # Use V^{0,strategy_profile} or V^{1,strategy_profile} based on final_pos
+                            v_symbol = sp.Symbol(f'V_1^{{{self.position_names[final_pos]},{strategy_profile}}}')
+                            total_payoff += prob1 * prob2 * v_symbol
+            
+        return total_payoff.simplify()
+       
+
 
     def compute_deviation_payoff(
         self, strategy_profile, player, pos, deviation_move
@@ -294,7 +461,7 @@ class GeneralMarkovGameAnalyzer:
 
         # Get equilibrium values for comparison
         equilibrium_values_p1, _ = self.compute_equilibrium_payoffs(
-            strategy_profile, constant
+            strategy_profile, self.constant
         )
 
         # Initialize results dictionary
@@ -311,6 +478,11 @@ class GeneralMarkovGameAnalyzer:
                 # Get equilibrium move and value
                 equilibrium_move = strategy[pos]
                 equilibrium_value = equilibrium_values_p1[pos + state_offset]  # here
+            
+                # Create symbolic equilibrium value
+                pos_name = self.position_names[pos]
+                symbolic_equilibrium_value = sp.Symbol(f'V_{player}^{{{pos_name};{strategy_profile}}}')
+
 
                 # Check each possible deviation move
                 for move in self.possible_moves:
@@ -319,10 +491,18 @@ class GeneralMarkovGameAnalyzer:
                         deviation_value = self.compute_deviation_payoff(
                             strategy_profile, player, pos, move
                         )
+                        
+                        symbolic_deviation_value = self.compute_deviation_payoff_symbolic(
+                            strategy_profile, player, pos, move
+                        )
 
                         gain_from_deviation = simplify(
                             deviation_value - equilibrium_value
                         )
+                        
+                        symbolic_gain_from_deviation = symbolic_deviation_value - symbolic_equilibrium_value
+                              
+
                         equilibrium_value = equilibrium_value.simplify()
 
                         # Store results
@@ -330,7 +510,11 @@ class GeneralMarkovGameAnalyzer:
                             "equilibrium_move": equilibrium_move,
                             "equilibrium_value": equilibrium_value,
                             "deviation_value": deviation_value,
+                            "symbolic_equilibrium_value": symbolic_equilibrium_value,
+                            "symbolic_gain_from_deviation": symbolic_gain_from_deviation,
+                            "symbolic_deviation_value": symbolic_deviation_value,
                             "gain_from_deviation": gain_from_deviation,
+                            
                         }
 
         return deviation_analysis
@@ -367,15 +551,18 @@ class EquilibriumConstraintChecker:
         """
         deviations = self.analyzer.check_deviations(strategy_profile)
         constraints = []
-
+        symbolic_constraints = []
         for (player, pos, move), results in deviations.items():
             gain_p1 = results["gain_from_deviation"]
+            symbolic_gain = results["symbolic_gain_from_deviation"]
             if player == 1:
                 constraints.append(gain_p1 <= 0)
+                symbolic_constraints.append(symbolic_gain <= 0)
             else:  # player 2
                 constraints.append(gain_p1 >= 0)
+                symbolic_constraints.append(symbolic_gain >= 0)
 
-        return constraints
+        return constraints, symbolic_constraints
 
     def check_satisfiability(self, strategy_profile, steps_per_var, additional_constraints=None): #checked
         """
@@ -394,7 +581,7 @@ class EquilibriumConstraintChecker:
                 - sample_solution: If solution found, example values that work
         """
         # Get equilibrium constraints
-        constraints = self.get_equilibrium_constraints(strategy_profile)
+        constraints, _ = self.get_equilibrium_constraints(strategy_profile)
 
         # Add any additional constraints
         if additional_constraints:
@@ -442,7 +629,7 @@ class EquilibriumConstraintChecker:
         simplified_values = [value.simplify() for value in equilibrium_values]  
 
         # Get constraints
-        constraints = self.get_equilibrium_constraints(strategy_profile)
+        constraints, symbolic_constraints = self.get_equilibrium_constraints(strategy_profile)
 
         # Check satisfiability
         satisfiability = self.check_satisfiability(strategy_profile, steps_per_var)
@@ -451,6 +638,7 @@ class EquilibriumConstraintChecker:
         return {
             "equilibrium_values": simplified_values,
             "constraints": constraints,
+            "symbolic_constraints": symbolic_constraints,
             "satisfiability": satisfiability,
         }
 
@@ -510,47 +698,98 @@ def save_analysis_to_tex(analyzer, strategy_profile, P, Q, R, deviations, analys
     # Add deviation results
     for (player, pos, move), results in deviations.items():
         position_name = ["simple", "complex"][pos]
+        pos_name = analyzer.position_names[pos]     # For symbolic notation
         tex_content.extend([
             f"\\paragraph{{Player {player}, {position_name} position, deviation to {move}}}\\", 
             f"Equilibrium move: \\\\",
             f"{results['equilibrium_move']} \\\\[1em]",
             f"Equilibrium value: \\\\",
             "\\begin{align*}",
-            f"&{sp.latex(results['equilibrium_value'])} \\\\[1em]",
+            f"&V_{player}^{{{pos_name};{strategy_profile}}} = {sp.latex(results['equilibrium_value'])} \\\\[1em]",
             "\\end{align*}",
             f"Deviation value: \\\\",
             "\\begin{align*}",
             f"&{sp.latex(results['deviation_value'])} \\\\[1em]",
             "\\end{align*}",
+            "\\begin{align*}",
+            f"&={sp.latex(results['symbolic_deviation_value'])} \\\\[1em]",
+            "\\end{align*}",
             f"Gain from deviation: \\\\",
             "\\begin{align*}",
-            f"&{sp.latex(results['gain_from_deviation'])}",
+            f"&{sp.latex(results['gain_from_deviation'])} \\\\[1em]",
+            "\\end{align*}",
+            "\\begin{align*}",
+            f"&={sp.latex(results['symbolic_deviation_value'])}-V_{player}^{{{pos_name},{strategy_profile}}} \\\\[1em]",
             "\\end{align*}",
         ])
     
-    # Add equilibrium values
+# Add equilibrium values
     tex_content.extend([
         "\\subsection*{Equilibrium Values (Non-terminal States)}"
+        "\\subsubsection*{Closed Form Solution}"
+
     ])
-    
-    for i, value in enumerate(analysis['equilibrium_values']):
+
+    # Handle first num_positions entries (Player 1)
+    for i in range(analyzer.num_positions):
+        pos_name = analyzer.position_names[i]
+        value = analysis['equilibrium_values'][i]
         tex_content.extend([
-            f"$v_{i+1}$: \\\\",
+            f"$V_1^{{{pos_name};{strategy_profile}}}$: \\\\",
             "\\begin{align*}",
             f"&{sp.latex(value)} \\\\[1em]",
             "\\end{align*}"
         ])
+
+    # Handle second num_positions entries (Player 2)
+    for i in range(analyzer.num_positions):
+        pos_name = analyzer.position_names[i]
+        value = analysis['equilibrium_values'][i + analyzer.num_positions]
+        tex_content.extend([
+            f"$V_2^{{{pos_name};{strategy_profile}}}$: \\\\",
+            "\\begin{align*}",
+            f"&{sp.latex(value)} \\\\[1em]",
+            "\\end{align*}"
+        ])
+
+            # Add recursive formulation
+    tex_content.extend([
+        "\\subsubsection*{Recursive Formulation}",
+        "The continuation values satisfy the following system of equations: \\\\"
+    ])
+
+    # Get recursive equations from compute_equilibrium_payoffs_recursive
+    equations, _ = analyzer.compute_equilibrium_payoffs_recursive(strategy_profile, constant)
+
+        # Add equations to LaTeX
+    tex_content.extend([
+        "\\begin{align*}"
+    ])
     
+    for eq in equations:
+        tex_content.extend([
+            f"{sp.latex(eq)} \\\\[1em]"
+        ])
+    
+    tex_content.extend([
+        "\\end{align*}"
+    ])
+
     # Add equilibrium constraints
     tex_content.extend([
         "\\subsection*{Equilibrium Constraints}"
     ])
+
+
     
-    for i, constraint in enumerate(analysis['constraints'], 1):
+    for i, (constraint, symbolic_constraint) in enumerate(zip(analysis['constraints'], analysis['symbolic_constraints']), 1):
         tex_content.extend([
             f"Constraint {i}: \\\\",
             "\\begin{align*}",
             f"&{sp.latex(constraint)} \\\\[1em]",
+            "\\end{align*}",
+            "\\begin{align*}",
+            f"&{sp.latex(symbolic_constraint)} \\\\[1em]",
             "\\end{align*}"
         ])
     
@@ -593,7 +832,7 @@ if __name__ == "__main__":
         b_sS < 1,
         b_sC < 1,
         b_cS < 1,
-        b_cC < 1,
+        b_cC < 0.25,
         tau < 1,
         b_sS > 0,
         b_sC > 0,
@@ -606,7 +845,7 @@ if __name__ == "__main__":
     num_positions = 2  # simple (0) and complex (1)
     possible_moves = ["S", "C"]
     constant = 1  # Constant to which player 1 and player 2's payoffs should add up. Used to compute player 2's payoffs as constant-(player 1's payoffs) 
-
+    position_names = {0: 's', 1: 'c'} # simple (0) and complex (1)
     # Define transition probabilities
     # Format: (pos, move) -> {next_pos: prob, 'win': prob, 'lose': prob}
     # GUIDELINES: non terminal states are to be given as INTEGERS, STARTING AT 0. Terminal states should NOT be given as integers.
@@ -689,10 +928,11 @@ if __name__ == "__main__":
         transition_probs_2,  # Player 2's transition probabilities
         terminal_states,
         constant,
+        position_names,
     )
     # Analyze strategy profile
     # Note: in our encoding, position 0 = simple, 1 = complex
-    all_strategy_profiles = ("CC,SS",)
+    all_strategy_profiles = ("CS,SS","CC,SS", "CC,CS", "CS,CS",)
 
     for strat_profile in all_strategy_profiles:
 
@@ -700,7 +940,7 @@ if __name__ == "__main__":
 
         strategy_profile = strat_profile
 
-        steps_per_var = 3 #grid density per variable
+        steps_per_var = 2 #grid density per variable
 
         # Get transition matrix
         P = analyzer.create_transition_matrix(strategy_profile)
@@ -721,9 +961,11 @@ if __name__ == "__main__":
         for (player, pos, move), results in deviations.items():
             print(f"\nPlayer {player} at position {pos} deviating to {move}:")
             print(f"Equilibrium move was: {results['equilibrium_move']}")
-            print(f"Equilibrium value: {results['equilibrium_value'].simplify()}")
+            print(f"Equilibrium value: {results['symbolic_equilibrium_value']}={results['equilibrium_value'].simplify()}")
+            print(f"Symbolic deviation value: {results['symbolic_deviation_value'].simplify()}")           
             print(f"Deviation value: {results['deviation_value'].simplify()}")
             print(f"Gain from deviation: {results['gain_from_deviation'].simplify()}")
+            print(f"= {results['symbolic_gain_from_deviation']}")
 
         # Create constraint checker
         checker = EquilibriumConstraintChecker(analyzer, assumptions, steps_per_var)
@@ -737,9 +979,11 @@ if __name__ == "__main__":
         print(analysis["equilibrium_values"])
 
         print("\nEquilibrium constraints:")
-        for i, constraint in enumerate(analysis["constraints"], 1):
+        for i, (constraint, symbolic_constraint) in enumerate(zip(analysis["constraints"], analysis["symbolic_constraints"]), 1):
             print(f"\nConstraint {i}:")
             print(constraint)
+            print(f"= {symbolic_constraint}")
+
 
         print("\nSatisfiability results:")
         print(analysis["satisfiability"]["explanation"])
@@ -766,6 +1010,18 @@ if __name__ == "__main__":
             R,
             deviations,
             analysis,
-            timestamp
+            timestamp,
         )
         print(f"\nComplete analysis has been saved to '{output_file}'")
+
+        results = analyzer.compute_payoffs_both_methods(strategy_profile, constant)
+
+        # Print recursive equations
+        print("Recursive formulation of continuation values:")
+        for eq in results['recursive_equations']:
+            print(eq)
+
+        # Verify that matrix solution satisfies recursive equations
+        print("\nVerification that matrix solution satisfies recursive equations:")
+        for verified in results['verification']:
+            print(verified)
